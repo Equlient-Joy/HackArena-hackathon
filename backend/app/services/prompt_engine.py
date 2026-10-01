@@ -301,19 +301,33 @@ def build_screen_analysis_prompt(
     scheme_id: Optional[str] = None,
     current_step: Optional[str] = None,
     language: str = "hi-IN",
+    field_states: Optional[List[dict]] = None,
 ) -> str:
     """Build the multimodal query prompt instructing Gemini to analyze the screenshot."""
     lang_meta = get_language_meta(language)
     scheme_ctx = f"Scheme context: {scheme_id}" if scheme_id else "Government portal navigation"
     step_ctx = f"Current workflow step: {current_step}" if current_step else "First or active step"
 
+    fields_ctx = ""
+    if field_states:
+        fields_lines = []
+        for f in field_states:
+            label = f.get("label", "Field")
+            status = "FILLED" if f.get("is_filled", False) else "EMPTY"
+            fields_lines.append(f"  - {label}: {status}")
+        fields_ctx = (
+            "\nDetected Form Fields & Fill Status:\n"
+            + "\n".join(fields_lines)
+            + "\nNote: Blacked-out PII fields are already FILLED. Focus navigation on the FIRST EMPTY field.\n"
+        )
+
     return f"""Analyze this government portal screenshot image.
 {scheme_ctx}
 {step_ctx}
 Language: {lang_meta['name']} ({lang_meta['code']})
-
+{fields_ctx}
 Tasks:
-1. Locate the next actionable UI element for the user to proceed.
+1. Locate the next actionable UI element for the user to proceed (prioritize the first EMPTY required field or next button).
 2. If there is a CAPTCHA on screen, transcribe its alphanumeric code into `captcha_code` and set `field_type="CAPTCHA"`.
 3. If this step asks for Aadhaar number or Samagra ID, set `field_type="INPUT_TEXT"` and request consent respectfully.
 4. Provide normalized bounding box `box_2d` [ymin, xmin, ymax, xmax] (0-1000 scale).

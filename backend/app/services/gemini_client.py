@@ -78,6 +78,7 @@ class GeminiGroundingEngine:
         scheme_id: Optional[str] = None,
         current_step: Optional[str] = None,
         language: str = "hi-IN",
+        field_states: Optional[list[dict]] = None,
     ) -> ScreenAnalysisResponse:
         """Deterministic fallback and offline mock for screen analysis."""
         norm_lang = normalize_language(language)
@@ -97,6 +98,24 @@ class GeminiGroundingEngine:
                 captcha_code=captcha_code,
                 status="IN_PROGRESS",
             )
+
+        # Check if field_states highlights an empty Aadhaar or Citizen ID field
+        if field_states:
+            for field in field_states:
+                label_lower = field.get("label", "").lower()
+                is_filled = field.get("is_filled", False)
+                if not is_filled and any(term in label_lower for term in ["aadhaar", "आधार", "samagra", "समग्र"]):
+                    is_samagra = "samagra" in label_lower or "समग्र" in label_lower
+                    spoken = format_id_guidance("Samagra" if is_samagra else "Aadhaar", norm_lang)
+                    return ScreenAnalysisResponse(
+                        action="HIGHLIGHT",
+                        box_2d=[340, 210, 410, 680],
+                        spoken_guidance=spoken,
+                        subtitle_text=spoken,
+                        field_type="INPUT_TEXT",
+                        captcha_code=None,
+                        status="IN_PROGRESS",
+                    )
 
         # Check for Aadhaar or Citizen ID input step
         if any(term in step_lower or term in scheme_lower for term in ["aadhaar", "आधार", "samagra", "समग्र", "id_number", "citizen_id"]):
@@ -276,6 +295,7 @@ class GeminiGroundingEngine:
         scheme_id: Optional[str] = None,
         current_step: Optional[str] = None,
         language: str = "hi-IN",
+        field_states: Optional[list[dict]] = None,
     ) -> ScreenAnalysisResponse:
         """Analyze a screen image using Gemini visual grounding or fallback mock.
 
@@ -284,6 +304,7 @@ class GeminiGroundingEngine:
             scheme_id: Optional identifier of the active scheme.
             current_step: Optional current step in workflow.
             language: Indic language code (e.g. 'hi-IN', 'ta-IN').
+            field_states: Optional list of detected on-device field states.
 
         Returns:
             ScreenAnalysisResponse with normalized box_2d, spoken guidance, and CAPTCHA data.
@@ -296,10 +317,13 @@ class GeminiGroundingEngine:
                 scheme_id=scheme_id,
                 current_step=current_step,
                 language=norm_lang,
+                field_states=field_states,
             )
 
         try:
-            prompt_text = build_screen_analysis_prompt(scheme_id, current_step, norm_lang)
+            prompt_text = build_screen_analysis_prompt(
+                scheme_id, current_step, norm_lang, field_states=field_states
+            )
             system_instruction = build_screen_system_instruction(norm_lang)
 
             contents = [
@@ -331,6 +355,7 @@ class GeminiGroundingEngine:
                 scheme_id=scheme_id,
                 current_step=current_step,
                 language=norm_lang,
+                field_states=field_states,
             )
 
     def ask_didi(
@@ -401,6 +426,7 @@ def analyze_screen(
     scheme_id: Optional[str] = None,
     current_step: Optional[str] = None,
     language: str = "hi-IN",
+    field_states: Optional[list[dict]] = None,
 ) -> ScreenAnalysisResponse:
     """Analyze a screen image using the default GeminiGroundingEngine."""
     return gemini_engine.analyze_screen(
@@ -408,6 +434,7 @@ def analyze_screen(
         scheme_id=scheme_id,
         current_step=current_step,
         language=language,
+        field_states=field_states,
     )
 
 

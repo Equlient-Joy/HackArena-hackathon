@@ -1,6 +1,7 @@
 """Screen analysis and visual grounding endpoints."""
 
 import io
+import json
 import logging
 from typing import Optional
 
@@ -24,6 +25,7 @@ async def analyze_screen_endpoint(
     scheme_id: Optional[str] = Form(None, description="Active scheme identifier"),
     current_step: Optional[str] = Form(None, description="Current workflow step context"),
     language: str = Form("hi-IN", description="Language code for spoken guidance"),
+    field_states: Optional[str] = Form(None, description="JSON string of detected FieldState list"),
 ) -> ScreenAnalysisResponse:
     """Analyze a mobile screen screenshot and provide visual grounding coordinates and spoken guidance."""
     # Read file content
@@ -50,6 +52,15 @@ async def analyze_screen_endpoint(
             detail="Uploaded file is corrupted or not a valid image format.",
         )
 
+    parsed_field_states = None
+    if field_states:
+        try:
+            parsed = json.loads(field_states)
+            if isinstance(parsed, list):
+                parsed_field_states = parsed
+        except Exception as exc:
+            logger.warning(f"Could not parse field_states parameter: {exc}")
+
     # Execute screen analysis via Gemini grounding engine
     try:
         response = await run_in_threadpool(
@@ -58,6 +69,7 @@ async def analyze_screen_endpoint(
             scheme_id=scheme_id,
             current_step=current_step,
             language=language,
+            field_states=parsed_field_states,
         )
         return response
     except Exception as exc:

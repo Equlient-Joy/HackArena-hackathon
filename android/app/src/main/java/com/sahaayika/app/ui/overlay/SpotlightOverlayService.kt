@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
@@ -21,6 +22,8 @@ import com.sahaayika.app.data.api.SahaayikaApiService
 import com.sahaayika.app.data.model.ScreenAnalysisResponse
 import com.sahaayika.app.data.profile.DidiBatuaManager
 import com.sahaayika.app.grounding.CoordinateTransformer
+import com.sahaayika.app.privacy.FieldState
+import com.sahaayika.app.privacy.PrivacyRedactor
 import com.sahaayika.app.service.SahaayikaAccessibilityService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +32,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 /**
  * System Overlay Service orchestrating Screen 3 of Sahaayika (सहायिका).
@@ -328,13 +333,36 @@ class SpotlightOverlayService : Service() {
     }
 
     /**
-     * Captures a silent native-resolution screen snapshot via the accessibility service and processes it.
+     * Captures a silent native-resolution screen snapshot via the accessibility service,
+     * scrubs PII, detects input field fill-states on-device, and processes it.
      */
     fun captureAndProcessScreen() {
         didiAvatarView.setThinkingState(true)
-        SahaayikaAccessibilityService.captureSnapshot(
-            onSuccess = { jpegBytes ->
-                processScreenSnapshot(jpegBytes)
+        SahaayikaAccessibilityService.captureBitmap(
+            onSuccess = { rawBitmap ->
+                serviceScope.launch(Dispatchers.Default) {
+                    try {
+                        // 1. On-device PII redaction and field state detection
+                        val redactionResult = PrivacyRedactor.redact(rawBitmap)
+                        rawBitmap.recycle()
+
+                        // 2. Compress sanitized bitmap to JPEG
+                        val outputStream = ByteArrayOutputStream()
+                        redactionResult.sanitizedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                        val sanitizedBytes = outputStream.toByteArray()
+                        redactionResult.sanitizedBitmap.recycle()
+
+                        // 3. Process with backend on Main thread
+                        withContext(Dispatchers.Main) {
+                            processScreenSnapshot(sanitizedBytes, redactionResult.fieldStates)
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            didiAvatarView.setThinkingState(false)
+                            resetInactivityWatchdog()
+                        }
+                    }
+                }
             },
             onError = {
                 didiAvatarView.setThinkingState(false)
@@ -344,12 +372,12 @@ class SpotlightOverlayService : Service() {
 
     /**
      * Core multimodal grounding pipeline:
-     * - Sends screen capture to Gemini backend
+     * - Sends screen capture to Gemini backend along with detected fieldStates
      * - Paints spotlight cutout on targetRect
      * - Speaks vernacular guidance & displays subtitles
      * - Handles CAPTCHAs and prompts for Didi Batua auto-fill
      */
-    fun processScreenSnapshot(jpegBytes: ByteArray) {
+    fun processScreenSnapshot(jpegBytes: ByteArray, fieldStates: List<FieldState> = emptyList()) {
         didiAvatarView.setThinkingState(true)
 
         serviceScope.launch {
@@ -357,7 +385,8 @@ class SpotlightOverlayService : Service() {
                 imageBytes = jpegBytes,
                 schemeId = currentSchemeId,
                 currentStep = currentStep,
-                language = currentLanguage
+                language = currentLanguage,
+                fieldStates = fieldStates
             )
 
             didiAvatarView.setThinkingState(false)

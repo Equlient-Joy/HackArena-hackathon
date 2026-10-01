@@ -1,6 +1,7 @@
 """Integration tests for Sahaayika FastAPI endpoints."""
 
 import io
+import json
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -156,6 +157,27 @@ class TestScreenAnalysisEndpoint:
         assert data["field_type"] == "CAPTCHA"
         assert data["captcha_code"] is not None
         assert len(data["captcha_code"]) > 0
+        assert len(data["box_2d"]) == 4
+
+    def test_analyze_screen_with_field_states(self):
+        jpeg_bytes = _generate_synthetic_jpeg()
+        field_states_json = json.dumps([
+            {"label": "Name", "is_filled": True},
+            {"label": "Aadhaar", "is_filled": False},
+        ])
+        response = client.post(
+            "/api/v1/analyze-screen",
+            files={"image": ("screen.jpg", jpeg_bytes, "image/jpeg")},
+            data={
+                "scheme_id": "ladli_behna",
+                "language": "hi-IN",
+                "field_states": field_states_json,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["field_type"] == "INPUT_TEXT"
+        assert "आधार" in data["spoken_guidance"]
         assert len(data["box_2d"]) == 4
 
     def test_analyze_screen_empty_image_fails_validation(self):

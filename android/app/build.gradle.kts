@@ -33,6 +33,10 @@ android {
       shaders = false
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     packaging {
       resources {
         excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -93,4 +97,7 @@ dependencies {
   implementation("com.google.android.material:material:1.11.0")
   implementation("androidx.recyclerview:recyclerview:1.3.2")
   implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+  // Google ML Kit Text Recognition
+  implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
 }

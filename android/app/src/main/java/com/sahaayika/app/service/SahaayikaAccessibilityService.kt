@@ -49,6 +49,18 @@ class SahaayikaAccessibilityService : AccessibilityService() {
                 onError()
             }
         }
+
+        /**
+         * Captures raw Bitmap snapshot using the active AccessibilityService for on-device redaction.
+         */
+        fun captureBitmap(onSuccess: (Bitmap) -> Unit, onError: () -> Unit) {
+            val service = instance
+            if (service != null) {
+                service.takeScreenBitmap(onSuccess, onError)
+            } else {
+                onError()
+            }
+        }
     }
 
     private val screenshotExecutor = Executors.newSingleThreadExecutor()
@@ -73,10 +85,10 @@ class SahaayikaAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Silently captures native-resolution display contents and compresses them into a high-quality JPEG byte array.
+     * Captures display contents as a Bitmap for on-device processing.
      */
-    fun takeScreenSnapshot(
-        onSuccess: (ByteArray) -> Unit,
+    fun takeScreenBitmap(
+        onSuccess: (Bitmap) -> Unit,
         onError: () -> Unit
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -89,18 +101,13 @@ class SahaayikaAccessibilityService : AccessibilityService() {
                             val hardwareBuffer = screenshotResult.hardwareBuffer
                             val colorSpace = screenshotResult.colorSpace
                             val hwBitmap = Bitmap.wrapHardwareBuffer(hardwareBuffer, colorSpace)
-                            val swBitmap = hwBitmap?.copy(Bitmap.Config.ARGB_8888, false)
+                            val swBitmap = hwBitmap?.copy(Bitmap.Config.ARGB_8888, true)
 
                             hardwareBuffer.close()
                             hwBitmap?.recycle()
 
                             if (swBitmap != null) {
-                                val outputStream = ByteArrayOutputStream()
-                                // Compress to native-resolution JPEG (~250-400KB)
-                                swBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
-                                val jpegBytes = outputStream.toByteArray()
-                                swBitmap.recycle()
-                                onSuccess(jpegBytes)
+                                onSuccess(swBitmap)
                             } else {
                                 onError()
                             }
@@ -115,9 +122,27 @@ class SahaayikaAccessibilityService : AccessibilityService() {
                 onError()
             }
         } else {
-            // Android versions below API 30 do not support AccessibilityService.takeScreenshot
             onError()
         }
+    }
+
+    /**
+     * Silently captures native-resolution display contents and compresses them into a high-quality JPEG byte array.
+     */
+    fun takeScreenSnapshot(
+        onSuccess: (ByteArray) -> Unit,
+        onError: () -> Unit
+    ) {
+        takeScreenBitmap(
+            onSuccess = { swBitmap ->
+                val outputStream = ByteArrayOutputStream()
+                swBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                val jpegBytes = outputStream.toByteArray()
+                swBitmap.recycle()
+                onSuccess(jpegBytes)
+            },
+            onError = onError
+        )
     }
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {

@@ -1,7 +1,20 @@
 """Pydantic schemas for screen analysis, visual grounding, and Didi conversational assistance."""
 
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class FieldState(BaseModel):
+    """Detected on-device field fill status metadata."""
+
+    label: str = Field(..., description="Field label identifier")
+    is_filled: bool = Field(
+        ...,
+        alias="is_filled",
+        description="True if field contains entered data or was redacted, False if empty/placeholder",
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ScreenAnalysisResponse(BaseModel):

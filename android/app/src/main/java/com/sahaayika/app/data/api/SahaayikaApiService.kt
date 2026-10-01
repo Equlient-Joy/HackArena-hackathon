@@ -6,6 +6,7 @@ import com.sahaayika.app.data.model.IntentRequest
 import com.sahaayika.app.data.model.IntentResponse
 import com.sahaayika.app.data.model.SchemeItem
 import com.sahaayika.app.data.model.ScreenAnalysisResponse
+import com.sahaayika.app.privacy.FieldState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -94,7 +95,8 @@ class SahaayikaApiService(
         imageBytes: ByteArray,
         schemeId: String? = null,
         currentStep: String? = null,
-        language: String = "hi-IN"
+        language: String = "hi-IN",
+        fieldStates: List<FieldState> = emptyList()
     ): Result<ScreenAnalysisResponse> = withContext(Dispatchers.IO) {
         runCatching {
             val multipartBuilder = MultipartBody.Builder()
@@ -111,6 +113,9 @@ class SahaayikaApiService(
             }
             if (!currentStep.isNullOrBlank()) {
                 multipartBuilder.addFormDataPart("current_step", currentStep)
+            }
+            if (fieldStates.isNotEmpty()) {
+                multipartBuilder.addFormDataPart("field_states", jsonParser.encodeToString(fieldStates))
             }
 
             val request = Request.Builder()
