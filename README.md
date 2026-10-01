@@ -35,10 +35,16 @@ The Sahaayika Brain backend is deployed live on **Render**:
 
 ---
 
-## 📱 Mobile App (Android Client)
+## 📱 Mobile App (Android Client) - v1.1.0 (Optimized ~3.09 MB)
 
-Download the pre-compiled APK directly from the GitHub Releases:
-📦 **[Download Sahaayika v1.0.0 APK](https://github.com/Equlient-Joy/HackArena-hackathon/releases/tag/v1.0.0)**
+The APK size has been reduced by **81%** (from **16.3 MB** down to **~3.09 MB**) using full R8 dead-code stripping, resource shrinking, and dual CPU architecture specialization:
+
+* 📱 **[Download for Physical Phones (ARM64-v8a)](https://github.com/Equlient-Joy/HackArena-hackathon/releases/download/v1.1/sahaayika-phone-arm64-v1.1.0.apk)** (~3.09 MB)  
+  *Optimized for modern Android smartphones (MediaTek, Qualcomm Snapdragon, Samsung Exynos).*
+* 💻 **[Download for Emulators (x86_64)](https://github.com/Equlient-Joy/HackArena-hackathon/releases/download/v1.1/sahaayika-emulator-x86_64-v1.1.0.apk)** (~3.09 MB)  
+  *Optimized for Android Studio desktop emulators running on PC/Mac.*
+
+📦 **[View GitHub Release v1.1](https://github.com/Equlient-Joy/HackArena-hackathon/releases/tag/v1.1)**
 
 ### Required Android Permissions:
 1. **Accessibility Service** (`SahaayikaAccessibilityService`): Enables passive screenshot capture when navigating scheme portals to compute grounding coordinates without breaking user flow.
