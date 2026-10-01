@@ -10,4 +10,28 @@
     <color name="pill_banner_stroke">#FFEBAA</color>
     <color name="pill_banner_text">#664D03</color>
     <color name="primary_accent">#E65100</color>
+
+    <!-- Guided Hub Mic State Colors -->
+    <color name="mic_idle">#E65100</color>
+    <color name="mic_idle_stroke">#FFE0B2</color>
+    <color name="mic_idle_ripple">#26E65100</color>
+    <color name="mic_recording">#2E7D32</color>
+    <color name="mic_recording_stroke">#A5D6A7</color>
+    <color name="mic_recording_ripple">#332E7D32</color>
+    <color name="mic_processing">#1976D2</color>
+    <color name="mic_processing_stroke">#90CAF9</color>
+    <color name="mic_processing_ripple">#331976D2</color>
+    <color name="mic_error">#D32F2F</color>
+    <color name="mic_error_stroke">#FFCDD2</color>
+    <color name="mic_error_ripple">#33D32F2F</color>
+
+    <!-- Guided Hub Surface & Banner Colors -->
+    <color name="status_card_bg">#FFFDF5</color>
+    <color name="status_card_stroke">#FFE082</color>
+    <color name="scheme_chip_bg">#FFF3E0</color>
+    <color name="scheme_chip_stroke">#FFCC80</color>
+    <color name="scheme_chip_text">#E65100</color>
+    <color name="input_bg">#FFFFFF</color>
+    <color name="input_stroke">#D7CCC8</color>
+    <color name="white">#FFFFFF</color>
 </resources>
