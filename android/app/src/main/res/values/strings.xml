@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Sahaayika</string>
+    <string name="accessibility_service_description">सहायिका दीदी को सरकारी पोर्टल समझने और स्क्रीन पर मार्गदर्शन देने की अनुमति देता है। (Enables Sahaayika to visually ground and guide through welfare portals.)</string>
+    <string name="overlay_notification_title">सहायिका दीदी सक्रिय हैं (Sahaayika is Active)</string>
+    <string name="overlay_notification_text">योजना पोर्टल पर चरण-दर-चरण मार्गदर्शन चालू है।</string>
+    <string name="overlay_notification_stop">रोकें (Stop)</string>
 </resources>
