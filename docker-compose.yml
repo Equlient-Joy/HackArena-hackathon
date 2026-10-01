@@ -1,0 +1,22 @@
+services:
+  sahaayika-brain:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sahaayika-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-3.8-flash
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DEFAULT_LANGUAGE=hi-IN
+    env_file:
+      - ./backend/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
