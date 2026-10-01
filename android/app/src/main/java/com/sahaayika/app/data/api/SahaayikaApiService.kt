@@ -41,7 +41,7 @@ class SahaayikaApiService(
 ) {
 
     companion object {
-        const val DEFAULT_BASE_URL = "http://10.0.2.2:8000/api/v1"
+        const val DEFAULT_BASE_URL = "https://sahaayika-brain.onrender.com/api/v1"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         private val PNG_MEDIA_TYPE = "image/png".toMediaType()
 
