@@ -24,7 +24,7 @@ class Settings(BaseModel):
     """Application settings with environment variable fallback."""
 
     GEMINI_API_KEY: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    GEMINI_MODEL: str = Field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
+    GEMINI_MODEL: str = Field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite"))
     PORT: int = Field(default_factory=lambda: int(os.getenv("PORT", "8000")))
     HOST: str = Field(default_factory=lambda: os.getenv("HOST", "0.0.0.0"))
     DEFAULT_LANGUAGE: str = Field(default_factory=lambda: os.getenv("DEFAULT_LANGUAGE", "hi-IN"))

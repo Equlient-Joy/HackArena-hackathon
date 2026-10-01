@@ -7,8 +7,21 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.main import app
+from app.services.gemini_client import gemini_engine
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def force_mock_engine():
+    """Ensure API integration tests run deterministically without external API dependencies."""
+    old_state = gemini_engine.force_mock
+    gemini_engine.force_mock = True
+    try:
+        yield
+    finally:
+        gemini_engine.force_mock = old_state
+
 
 
 def _generate_synthetic_jpeg(width: int = 200, height: int = 400, color: str = "white") -> bytes:

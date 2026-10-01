@@ -3,6 +3,7 @@ package com.sahaayika.app.service
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
 import android.os.Build
+import android.util.Log
 import android.view.Display
 import android.view.accessibility.AccessibilityEvent
 import java.io.ByteArrayOutputStream
@@ -72,11 +73,8 @@ class SahaayikaAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                onWindowStateChangedListener?.invoke()
-            }
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            onWindowStateChangedListener?.invoke()
         }
     }
 
@@ -114,11 +112,13 @@ class SahaayikaAccessibilityService : AccessibilityService() {
                         }
 
                         override fun onFailure(errorCode: Int) {
+                            Log.w("SahaayikaA11y", "takeScreenshot onFailure code: $errorCode")
                             onError()
                         }
                     }
                 )
             } catch (e: Exception) {
+                Log.w("SahaayikaA11y", "takeScreenshot exception: $e")
                 onError()
             }
         } else {

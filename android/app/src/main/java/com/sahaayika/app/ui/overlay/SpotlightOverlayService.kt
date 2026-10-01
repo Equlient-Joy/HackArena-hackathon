@@ -190,6 +190,8 @@ class SpotlightOverlayService : Service() {
     var currentStep: String? = null
 
     private var watchdogJob: Job? = null
+    private var pageTransitionJob: Job? = null
+    private var isCapturingScreen: Boolean = false
     private var isViewsAttached: Boolean = false
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -257,8 +259,9 @@ class SpotlightOverlayService : Service() {
         // Setup accessibility event listener to react to page navigation
         SahaayikaAccessibilityService.onWindowStateChangedListener = {
             resetInactivityWatchdog()
-            serviceScope.launch {
-                delay(1200L)
+            pageTransitionJob?.cancel()
+            pageTransitionJob = serviceScope.launch {
+                delay(1500L)
                 captureAndProcessScreen()
             }
         }
@@ -337,7 +340,9 @@ class SpotlightOverlayService : Service() {
      * scrubs PII, detects input field fill-states on-device, and processes it.
      */
     fun captureAndProcessScreen() {
-        didiAvatarView.setThinkingState(true)
+        if (isCapturingScreen) return
+        isCapturingScreen = true
+        didiAvatarView.post { didiAvatarView.setThinkingState(true) }
         SahaayikaAccessibilityService.captureBitmap(
             onSuccess = { rawBitmap ->
                 serviceScope.launch(Dispatchers.Default) {
@@ -354,10 +359,12 @@ class SpotlightOverlayService : Service() {
 
                         // 3. Process with backend on Main thread
                         withContext(Dispatchers.Main) {
+                            isCapturingScreen = false
                             processScreenSnapshot(sanitizedBytes, redactionResult.fieldStates)
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
+                            isCapturingScreen = false
                             didiAvatarView.setThinkingState(false)
                             resetInactivityWatchdog()
                         }
@@ -365,7 +372,10 @@ class SpotlightOverlayService : Service() {
                 }
             },
             onError = {
-                didiAvatarView.setThinkingState(false)
+                isCapturingScreen = false
+                serviceScope.launch(Dispatchers.Main) {
+                    didiAvatarView.setThinkingState(false)
+                }
             }
         )
     }

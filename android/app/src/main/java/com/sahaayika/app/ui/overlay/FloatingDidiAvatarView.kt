@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Looper
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -194,6 +195,10 @@ class FloatingDidiAvatarView @JvmOverloads constructor(
      * When thinking is active, displays pulsing yellow glow ring and indicator badge.
      */
     fun setThinkingState(thinking: Boolean) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            post { setThinkingState(thinking) }
+            return
+        }
         if (this.isThinking == thinking) return
         this.isThinking = thinking
 
