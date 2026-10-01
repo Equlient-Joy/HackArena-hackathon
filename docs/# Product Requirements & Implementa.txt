@@ -1,0 +1,258 @@
+# Product Requirements & Implementation Spec: Sahaayika (सहायिका)
+
+## 1. Project Overview & Core Mission
+
+* **Target Audience:** First-time smartphone users in rural India, specifically women with zero English literacy and no prior technical experience.
+
+
+* **Core Problem:** Millions of women are structurally excluded from digital public infrastructure due to complex, unlabelled, bureaucratic government portals.
+
+
+* **Design Philosophy:** **Proactive Guidance Over User Prompting.** The app never expects the user to figure out what to do; every screen speaks first in their native language and visually directs attention using high-contrast spotlight cutouts.
+* **Target Platforms & Scopes:** Native Android (Kotlin, Min SDK 29, Target SDK 34).
+
+---
+
+## 2. Technical Stack & Key Dependencies
+
+* **Language & Framework:** 100% Native Android in Kotlin.
+* **UI Tooling:** Jetpack Views / ViewBinding with custom `Canvas` drawing for the overlay.
+* **Visual UI Grounding:** **Gemini 3.8 Flash** via REST API (`generateContent`) using `response_schema` for deterministic JSON coordinate extraction.
+* **Speech-to-Text (STT):**
+* *Primary:* On-device Android `SpeechRecognizer` configured for Indic locales (e.g., `hi-IN`, `ta-IN`, `bn-IN`, `te-IN`, `mr-IN`).
+* *Fallback:* Google Speech Recognizer Intent (`RecognizerIntent.ACTION_RECOGNIZE_SPEECH`) or Cloud STT REST endpoint if local engine is missing.
+
+
+* **Text-to-Speech (TTS):**
+* *Primary:* Android on-device `android.speech.tts.TextToSpeech` with regional locales.
+* *Fallback:* Google Cloud Text-to-Speech REST API (or Sarvam AI `Bulbul`) streaming MP3/WAV playback via Android `MediaPlayer` when on-device language packs are not installed.
+
+
+* **Screen Ingestion:** Android `AccessibilityService.takeScreenshot()` (API 30+) or `MediaProjection` snapshot pipeline to capture clean bitmaps without interrupting the active browser session.
+* **Overlay Layer:** Android `WindowManager` with `TYPE_APPLICATION_OVERLAY` running within a persistent `ForegroundService`.
+
+---
+
+## 3. Detailed Screen & Workflow Specifications
+
+### Screen 1: Language Onboarding Screen (`LanguageActivity`)
+
+* **UX Objective:** Guide the user to select their native language immediately, without assuming they can read English or recognize that lists scroll.
+* **UI Components:**
+* Clean, high-contrast, uncluttered layout with soft background (#FDFBF7).
+* Prominent native script headers (e.g., "अपनी भाषा चुनें / Select Language").
+* Vertical `RecyclerView` of languages displayed in native script + transliterated English (हिन्दी, தமிழ், বাংলা, తెలుగు, मराठी, English).
+* **Visual Scroll Affordance:** An animated, bouncing downward arrow banner anchored at the bottom of the screen with clear text: *"नीचे और भाषाएँ हैं (Scroll down)"*. The hint automatically fades out once the user performs a vertical scroll.
+
+
+* **Audio Guidance:**
+* Plays automatically on `onInit()` of the TTS engine without requiring any button press.
+* Speaks in Hindi and English sequentially: *"नमस्ते! नीचे दी गई सूची में से अपनी भाषा पर उँगली रखकर चुनें।"* / *"Welcome. Please tap your language."*
+
+
+* **Selection Behavior:**
+* Saves chosen language code (`selected_lang`) to `SharedPreferences`.
+* Instantly cuts TTS audio and transitions to Screen 2.
+
+
+
+---
+
+### Screen 2: Guided Action & Intent Hub (`GuidedHubActivity`)
+
+* **UX Objective:** Eliminate blank input paralysis. The app speaks first, offering clear examples of what she can check (e.g., PM-Kisan, Ladli Behna, Ration Card, Janani Suraksha).
+* **UI Components:**
+* **Proactive Status Banner:** Prominent text that updates in real time to indicate system state (*"दीदी, बोलकर बताएं: आपको क्या मदद चाहिए?"*).
+* **Primary Voice Target:** Centered, massive (130dp+) glowing microphone button with an animated pulsing ring around it to draw the user's eye.
+* **Secondary Text Input:** Bottom text box with a large clear placeholder (*"या यहाँ योजना का नाम लिखें..."*) and an "आगे बढ़ें (Go Next)" button for assisted text input.
+
+
+* **Audio Guidance & Listening Loop:**
+* On launch, auto-narrates instructions in the chosen language: *"माइक वाले गोल बटन को दबाएं और बोलें कि आपको किस सरकारी योजना की जानकारी चाहिए।"*
+* Tapping the mic activates Android `SpeechRecognizer`. The pulsing ring turns green during recording and blue during processing.
+
+
+* **Trigger Action:**
+* Once the user inputs a scheme or need (via voice or text), the app:
+1. Saves the query string as `current_goal`.
+2. Spawns the background `SpotlightOverlayService`.
+3. Fires an implicit `Intent` to launch Google Chrome / Browser pre-navigated to the official portal or direct Google search for that scheme.
+
+
+
+
+
+---
+
+### Screen 3: System-Level Spotlight Overlay Service (`SpotlightOverlayService`)
+
+* **UX Objective:** Hover over external websites and browser sessions, highlighting specific interactive areas while leaving the underlying web page completely interactable.
+* **Window Properties & Flags:**
+* **Window Type:** `WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY`.
+* **Flags:**
+* `FLAG_NOT_FOCUSABLE`: Ensures keyboard and touch input route directly to Chrome.
+* `FLAG_NOT_TOUCH_MODAL`: Prevents the overlay window from consuming taps meant for the background.
+* `FLAG_LAYOUT_IN_SCREEN`: Allows the overlay canvas to cover the full physical screen resolution.
+
+
+
+
+* **Visual Components:**
+* **Draggable Floating Guide Avatar:** A friendly, non-intrusive floating bubble ("दीदी / Helper") anchored to the edge of the screen. Tapping it triggers on-demand help or re-reads instructions.
+* **Full-Screen Canvas (`SpotlightCanvasView`):**
+* Uses a semi-transparent scrim (`#B3000000` / 70% black) across the screen to fade distractions.
+* Punches out an elliptical or rounded-rectangle hole directly over target UI coordinates using `PorterDuff.Mode.CLEAR`.
+* Draws an animated, high-contrast pulsing yellow border around the cutout.
+* Leaves all underlying web links and input fields responsive to direct finger taps.
+
+
+
+
+
+---
+
+## 4. Multimodal UI Grounding Pipeline (Gemini 3.8 Flash)
+
+```
+[Screen Snapshot Bitmap] + [User Intent]
+                  │
+                  ▼ HTTP POST
+┌────────────────────────────────────────────────────────┐
+│               Gemini 3.8 Flash Endpoint                │
+│                                                        │
+│  Model Task:                                           │
+│  1. Scan visual canvas for the target button/field     │
+│  2. Return normalized coordinates [ymin, xmin, ymax, xmax]│
+│  3. Return max 10-word vernacular spoken instructions  │
+└─────────────────────────┬──────────────────────────────┘
+                          │ Strict JSON Output
+                          ▼
+┌────────────────────────────────────────────────────────┐
+│                   Local Android App                    │
+│                                                        │
+│  1. Map 0-1000 scale to real DisplayMetrics pixels     │
+│  2. Update SpotlightCanvasView RectF cutout            │
+│  3. TTS speaks vernacular guidance audio               │
+└────────────────────────────────────────────────────────┘
+
+```
+
+### JSON Response Schema Specification
+
+The request must enforce the following strict schema via `generationConfig.response_schema`:
+
+```json
+{
+  "type": "OBJECT",
+  "properties": {
+    "action": {
+      "type": "STRING",
+      "enum": ["HIGHLIGHT", "SCROLL_DOWN", "WAIT", "SUCCESS"]
+    },
+    "box_2d": {
+      "type": "ARRAY",
+      "items": { "type": "INTEGER" },
+      "description": "Normalized bounding box [ymin, xmin, ymax, xmax] scaled from 0 to 1000"
+    },
+    "spoken_guidance": {
+      "type": "STRING",
+      "description": "Short, compassionate vernacular instruction (max 10-15 words) in the target language"
+    }
+  },
+  "required": ["action", "box_2d", "spoken_guidance"]
+}
+
+```
+
+### Coordinate Conversion Formula
+
+Gemini outputs 2D bounding boxes normalized on a 0 to 1000 scale. The agent must convert these directly to device hardware pixels:
+
+$$\text{left} = \frac{\text{xmin}}{1000} \times \text{screen\_width}$$
+
+$$\text{top} = \frac{\text{ymin}}{1000} \times \text{screen\_height}$$
+
+$$\text{right} = \frac{\text{xmax}}{1000} \times \text{screen\_width}$$
+
+$$\text{bottom} = \frac{\text{ymax}}{1000} \times \text{screen\_height}$$
+
+---
+
+## 5. Speech & Audio Architecture
+
+### Guidance Voice Personality Guidelines
+
+* **Tone:** Respectful, calm, encouraging (resembling an elder sister or local ASHA / Anganwadi worker).
+* **Length:** Never exceed 1–2 short sentences per interaction.
+* **Vocabulary:** Strictly avoid technical terms like "URL", "Browser", "Tab", "Dropdown", or "Form Submit". Use physical real-world descriptions (e.g., *"इस पीले घेरे में अपना नाम लिखें"* / *"नीचे नीले वाले बटन को दबाएं"*).
+
+### Dual-Layer Fallback Architecture
+
+1. **TTS Pipeline:**
+* Step 1: Query local Android `TextToSpeech` engine for the chosen `Locale`.
+* Step 2: If language engine is available, speak locally (`QUEUE_FLUSH`).
+* Step 3: If `LANG_MISSING_DATA` or initialization fails, send the `spoken_guidance` text to Google Cloud Text-to-Speech REST API / Sarvam AI API, fetch raw audio bytes, and play them immediately via Android `MediaPlayer`.
+
+
+2. **STT Pipeline:**
+* Step 1: Check `SpeechRecognizer.isRecognitionAvailable()`.
+* Step 2: If supported, bind in-app listener with `EXTRA_LANGUAGE = "<lang>-IN"`.
+* Step 3: If unavailable, trigger `RecognizerIntent.ACTION_RECOGNIZE_SPEECH` to launch the standard Google Voice dialog.
+
+
+
+---
+
+## 6. Permissions & Manifest Declarations
+
+The following permissions are required in `AndroidManifest.xml`:
+
+```xml
+<!-- Overlay Drawing -->
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+<!-- Voice Input & Networking -->
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+```
+
+* **Permission Handling:** Check `Settings.canDrawOverlays(context)` on startup. If ungranted, route the user directly to `Settings.ACTION_MANAGE_OVERLAY_PERMISSION` with an audible explanation of why overlay access is needed.
+
+---
+
+## 7. Instructions for Coding Agent Execution
+
+When writing the project code, follow this sequence:
+
+1. **Scaffold Core Models & Utilities:**
+* Create language data models and `SharedPreferences` helpers.
+* Implement the `SpeechManager` wrapper handling on-device TTS/STT and cloud fallback logic.
+
+
+2. **Implement Screen 1 (`LanguageActivity`):**
+* Build XML layout with `RecyclerView` and the animated downward scroll indicator.
+* Bind auto-speaking TTS narration on view mount.
+
+
+3. **Implement Screen 2 (`GuidedHubActivity`):**
+* Build the voice-first UI with pulsing mic button and fallback text box.
+* Connect voice recognition callbacks to launch Chrome and `SpotlightOverlayService`.
+
+
+4. **Implement Custom Overlay (`SpotlightCanvasView`):**
+* Build custom view using `PorterDuffXfermode(PorterDuff.Mode.CLEAR)` for clean screen cutouts.
+* Draw the pulsing yellow boundary paint with hardware acceleration enabled.
+
+
+5. **Implement Overlay Service (`SpotlightOverlayService`):**
+* Configure `WindowManager.LayoutParams` with `TYPE_APPLICATION_OVERLAY` and passthrough flags.
+* Add draggable floating helper icon to the window manager.
+
+
+6. **Implement Gemini Grounding Engine (`GeminiVisualGuide`):**
+* Write OkHttp REST client targeting `gemini-3.8-flash` with the structured JSON schema.
+* Add coordinate scaling logic to convert `box_2d` output into real Android screen pixels.

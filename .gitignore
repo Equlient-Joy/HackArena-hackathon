@@ -1,0 +1,50 @@
+# Android & Gradle
+.gradle/
+**/build/
+build/
+*.apk
+*.aar
+*.aab
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python
+**/__pycache__/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+backend/.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# OS generated files
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+*~
