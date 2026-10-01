@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_warm_cream">#FDFBF7</color>
+    <color name="card_stroke">#E0DCD3</color>
+    <color name="badge_bg">#F2ECE1</color>
+    <color name="text_headline">#1A1A1A</color>
+    <color name="text_subhead">#4A4A4A</color>
+    <color name="text_muted">#757575</color>
+    <color name="pill_banner_bg">#FFF3CD</color>
+    <color name="pill_banner_stroke">#FFEBAA</color>
+    <color name="pill_banner_text">#664D03</color>
+    <color name="primary_accent">#E65100</color>
+</resources>

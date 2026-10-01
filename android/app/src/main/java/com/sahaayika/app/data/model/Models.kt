@@ -13,35 +13,80 @@ data class Language(
     val code: String,
     val nativeName: String,
     val englishName: String,
-    val welcomePrompt: String
+    val welcomePrompt: String = "",
+    val scriptBadge: String = ""
 ) {
+    val badge: String
+        get() = scriptBadge.ifEmpty {
+            when (code.lowercase().substringBefore("-")) {
+                "hi" -> "अ"
+                "ta" -> "அ"
+                "bn" -> "অ"
+                "te" -> "తె"
+                "mr" -> "म"
+                "gu" -> "ગુ"
+                "en" -> "A"
+                else -> nativeName.take(1)
+            }
+        }
+
     companion object {
         val HINDI = Language(
             code = "hi-IN",
             nativeName = "हिन्दी",
             englishName = "Hindi",
-            welcomePrompt = "नमस्ते! मैं आपकी सहायिका दीदी हूँ। मैं सरकारी योजनाओं के फॉर्म भरने में आपकी मदद करूँगी। बोलकर बताइए आप क्या करना चाहती हैं।"
+            welcomePrompt = "नमस्ते! मैं आपकी सहायिका दीदी हूँ। मैं सरकारी योजनाओं के फॉर्म भरने में आपकी मदद करूँगी। बोलकर बताइए आप क्या करना चाहती हैं।",
+            scriptBadge = "अ"
+        )
+        val TAMIL = Language(
+            code = "ta-IN",
+            nativeName = "தமிழ்",
+            englishName = "Tamil",
+            welcomePrompt = "வணக்கம்! நான் உங்கள் சகாயிகா அக்கா. அரசு திட்டங்களுக்கான படிவங்களை நிரப்ப நான் உங்களுக்கு உதவுவேன்.",
+            scriptBadge = "அ"
+        )
+        val BENGALI = Language(
+            code = "bn-IN",
+            nativeName = "বাংলা",
+            englishName = "Bengali",
+            welcomePrompt = "নমস্কার! আমি আপনার সহায়িকা দিদি। সরকারি প্রকল্পের ফর্ম পূরণে আমি আপনাকে সাহায্য করব।",
+            scriptBadge = "অ"
+        )
+        val TELUGU = Language(
+            code = "te-IN",
+            nativeName = "తెలుగు",
+            englishName = "Telugu",
+            welcomePrompt = "నమస్కారం! నేను మీ సహాయిక అక్కను. ప్రభుత్వ పథకాల దరఖాస్తులను పూర్తి చేయడంలో నేను మీకు సహాయం చేస్తాను.",
+            scriptBadge = "తె"
         )
         val MARATHI = Language(
             code = "mr-IN",
             nativeName = "मराठी",
             englishName = "Marathi",
-            welcomePrompt = "नमस्कार! मी तुमची सहायिका दीदी आहे. मी तुम्हाला सरकारी योजनांचे फॉर्म भरण्यास मदत करेन."
+            welcomePrompt = "नमस्कार! मी तुमची सहायिका दीदी आहे. मी तुम्हाला सरकारी योजनांचे फॉर्म भरण्यास मदत करेन.",
+            scriptBadge = "म"
         )
         val GUJARATI = Language(
             code = "gu-IN",
             nativeName = "ગુજરાતી",
             englishName = "Gujarati",
-            welcomePrompt = "નમસ્તે! હું તમારી સહાયિકા દીદી છું. સરકારી યોજનાઓનાં ફોર્મ ભરવામાં હું તમને મદદ કરીશ."
+            welcomePrompt = "નમસ્તે! હું તમારી સહાયિકા દીદી છું. સરકારી યોજનાઓનાં ફોર્મ ભરવામાં હું તમને मदद કરીશ.",
+            scriptBadge = "ગુ"
         )
         val ENGLISH = Language(
             code = "en-IN",
             nativeName = "English",
             englishName = "English",
-            welcomePrompt = "Hello! I am your Sahaayika Didi. I am here to guide you step-by-step through government scheme applications. Tell me what you need."
+            welcomePrompt = "Hello! I am your Sahaayika Didi. I am here to guide you step-by-step through government scheme applications. Tell me what you need.",
+            scriptBadge = "A"
         )
 
-        val SUPPORTED_LANGUAGES = listOf(HINDI, MARATHI, GUJARATI, ENGLISH)
+        /**
+         * The 6 core Indic languages for the Language Onboarding screen.
+         */
+        val CORE_LANGUAGES = listOf(HINDI, TAMIL, BENGALI, TELUGU, MARATHI, ENGLISH)
+
+        val SUPPORTED_LANGUAGES = listOf(HINDI, TAMIL, BENGALI, TELUGU, MARATHI, GUJARATI, ENGLISH)
 
         fun findByCode(code: String): Language {
             val prefix = code.split("-").first().lowercase()

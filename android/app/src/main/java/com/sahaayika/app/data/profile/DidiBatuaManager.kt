@@ -36,7 +36,20 @@ class DidiBatuaManager(private val prefs: SharedPreferences) {
         private const val KEY_AADHAAR = "key_aadhaar_number"
         private const val KEY_SAMAGRA_ID = "key_samagra_id"
         private const val KEY_MOBILE = "key_mobile_number"
+        private const val KEY_LANGUAGE = "key_selected_language"
     }
+
+    /**
+     * Save the selected Indic language code in the wallet.
+     */
+    fun saveLanguage(languageCode: String) {
+        prefs.edit().putString(KEY_LANGUAGE, languageCode).apply()
+    }
+
+    /**
+     * Retrieve the selected Indic language code.
+     */
+    fun getLanguage(): String = prefs.getString(KEY_LANGUAGE, "hi-IN") ?: "hi-IN"
 
     /**
      * Save or update citizen profile fields in the local wallet.
